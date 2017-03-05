@@ -1,58 +1,11 @@
 module Main exposing (..)
 
-import Html
-import Html.Attributes
 import Time exposing (Time, second)
 import Keyboard.Extra
 import Random
-
-
-type alias Position =
-    ( Int, Int )
-
-
-type alias Model =
-    { snake : List Position
-    , apple : Position
-    , arrows : Position
-    , direction : Position
-    , keyboardModel : Keyboard.Extra.Model
-    }
-
-
-toPx val =
-    (val |> toString) ++ "px"
-
-
-
--- snakeView snake =
-
-
-draw val ( x, y ) =
-    Html.div
-        [ Html.Attributes.style
-            [ ( "position", "absolute" )
-            , ( "top", y * config.spriteSize |> toPx )
-            , ( "left", x * config.spriteSize |> toPx )
-            ]
-        ]
-        [ Html.text val ]
-
-
-appleView =
-    draw "🍎"
-
-
-vertebraView =
-    draw "🐍"
-
-
-applesView apples =
-    apples |> List.map appleView
-
-
-snakeView snake =
-    snake |> List.map vertebraView
+import Html
+import Types exposing (..)
+import Views
 
 
 initialKeyboard : Keyboard.Extra.Model
@@ -76,24 +29,10 @@ main : Program Never Model Msg
 main =
     Html.program
         { init = init
-        , view = view
+        , view = Views.view
         , update = update
         , subscriptions = subscriptions
         }
-
-
-type Msg
-    = Tick Time
-    | TickControl Time
-    | KeyboardMsg Keyboard.Extra.Msg
-    | NewApple ( Int, Int )
-
-
-config =
-    { fps = 60
-    , max = 10
-    , spriteSize = 20
-    }
 
 
 subscriptions : Model -> Sub Msg
@@ -101,7 +40,7 @@ subscriptions model =
     Sub.batch
         [ Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , Time.every (second / config.fps) TickControl
-        , Time.every (second / 5) Tick
+        , Time.every (second / config.tps) Tick
         ]
 
 
@@ -133,12 +72,8 @@ addNewVertebra direction snake =
 
 
 collision apple snake =
-    snake |> List.member apple
-
-
-beEatenIfCollision : ( Int, Int ) -> List ( Int, Int ) -> Bool
-beEatenIfCollision apple snake =
-    snake |> collision apple
+    snake
+        |> List.member apple
 
 
 generateNewApple =
@@ -149,19 +84,23 @@ generateNewApple =
         )
 
 
-collisionWithHimself snake =
+between minimum maximum value =
+    value >= minimum && value <= maximum
+
+
+out minimum maximum ( x, y ) =
+    let
+        betweenBorders =
+            between minimum maximum
+    in
+        (not <| betweenBorders y)
+            || (not <| betweenBorders x)
+
+
+collisionWithHimselfOrWall snake =
     case snake of
-        e :: tail ->
-            tail |> List.member e
-
-        [] ->
-            False
-
-
-collisionWithWall snake =
-    case snake of
-        ( x, y ) :: tail ->
-            x < 0 || x > config.max || y < 0 || y > config.max
+        head :: tail ->
+            List.member head tail || out 0 config.max head
 
         [] ->
             False
@@ -170,21 +109,21 @@ collisionWithWall snake =
 moveSnake : Model -> ( Model, Cmd Msg )
 moveSnake ({ direction, snake, apple } as model) =
     let
-        newSnake =
+        movedSnake =
             snake
                 |> addNewVertebra direction
 
         appleEaten =
-            newSnake
-                |> beEatenIfCollision apple
+            movedSnake
+                |> collision apple
 
         finalSnake =
             if appleEaten then
-                newSnake
+                movedSnake
             else
-                newSnake |> dropLastVertebra
+                movedSnake |> dropLastVertebra
     in
-        if collisionWithHimself newSnake || collisionWithWall newSnake then
+        if collisionWithHimselfOrWall movedSnake then
             init
         else
             ( { model | snake = finalSnake }
@@ -208,7 +147,8 @@ updateDirection : Model -> Model
 updateDirection model =
     let
         newDirection =
-            model.direction |> applyKeyboard model.arrows
+            model.direction
+                |> applyKeyboard model.arrows
     in
         { model | direction = newDirection }
 
@@ -236,7 +176,7 @@ handleKeyboard model keyMsg =
 
 addNewApple : ( Int, Int ) -> Model -> ( Model, Cmd Msg )
 addNewApple newApple model =
-    if model.snake |> collision newApple then
+    if collision newApple model.snake then
         ( model, generateNewApple )
     else
         ( { model | apple = newApple }, Cmd.none )
@@ -256,27 +196,5 @@ update msg model =
                 |> moveSnake
 
         NewApple newApple ->
-            model |> addNewApple newApple
-
-
-drawWalls =
-    Html.div
-        [ Html.Attributes.style
-            [ ( "width", (config.max + 1) * config.spriteSize |> toPx )
-            , ( "height", (config.max + 1) * config.spriteSize |> toPx )
-            , ( "background-color", "black" )
-            , ( "position", "absolute" )
-            ]
-        ]
-        []
-
-
-view : Model -> Html.Html Msg
-view model =
-    Html.div []
-        [ Html.div
-            []
-            (drawWalls :: (appleView model.apple) :: (snakeView model.snake))
-        , Html.div [ Html.Attributes.style [ ( "position", "absolute" ), ( "color", "white" ) ] ]
-            [ (Html.text ((List.length model.snake - 1) |> toString)) ]
-        ]
+            model
+                |> addNewApple newApple
