@@ -57,8 +57,6 @@ scoreView { snake } =
 view : Model -> Html.Html Msg
 view model =
     div []
-        [ div [ style [ ( "position", "relative" ) ] ]
-            [ worldView model
-            , scoreView model
-            ]
+        [ worldView model
+        , scoreView model
         ]
