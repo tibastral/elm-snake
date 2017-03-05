@@ -1,17 +1,17 @@
 module Views exposing (..)
 
 import Types exposing (..)
-import Html
-import Html.Attributes
+import Html exposing (..)
+import Html.Attributes exposing (..)
 
 
 toPx val =
     (val |> toString) ++ "px"
 
 
-drawWalls =
-    Html.div
-        [ Html.Attributes.style
+wallsView =
+    div
+        [ style
             [ ( "width", (config.max + 1) * config.spriteSize |> toPx )
             , ( "height", (config.max + 1) * config.spriteSize |> toPx )
             , ( "background-color", "black" )
@@ -21,34 +21,44 @@ drawWalls =
         []
 
 
-draw val ( x, y ) =
-    Html.div
-        [ Html.Attributes.style
+spriteView val ( x, y ) =
+    div
+        [ style
             [ ( "position", "absolute" )
             , ( "top", y * config.spriteSize |> toPx )
             , ( "left", x * config.spriteSize |> toPx )
             ]
         ]
-        [ Html.text val ]
+        [ text val ]
 
 
 appleView =
-    draw "🍎"
+    spriteView "🍎"
 
 
 vertebraView =
-    draw "🐍"
+    spriteView "🐍"
 
 
 snakeView snake =
-    snake |> List.map vertebraView
+    snake
+        |> List.map vertebraView
+
+
+worldView { apple, snake } =
+    div [] (wallsView :: (appleView apple) :: (snakeView snake))
+
+
+scoreView { snake } =
+    div [ style [ ( "position", "absolute" ), ( "color", "white" ) ] ]
+        [ (text ((List.length snake - 1) |> toString)) ]
 
 
 view : Model -> Html.Html Msg
 view model =
-    Html.div []
-        [ Html.div []
-            (drawWalls :: (appleView model.apple) :: (snakeView model.snake))
-        , Html.div [ Html.Attributes.style [ ( "position", "absolute" ), ( "color", "white" ) ] ]
-            [ (Html.text ((List.length model.snake - 1) |> toString)) ]
+    div []
+        [ div [ style [ ( "position", "relative" ) ] ]
+            [ worldView model
+            , scoreView model
+            ]
         ]
