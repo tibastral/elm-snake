@@ -5,7 +5,9 @@ import Keyboard.Extra
 import Random
 import Html
 import Types exposing (..)
-import Views
+import WebGLViews
+import Window exposing (Size)
+import Task
 
 
 initialKeyboard : Keyboard.Extra.Model
@@ -21,7 +23,11 @@ init =
         ( 0, 0 )
         ( 1, 0 )
         initialKeyboard
-    , generateNewApple
+        (Size 0 0)
+    , Cmd.batch
+        [ generateNewApple
+        , Task.perform Resize Window.size
+        ]
     )
 
 
@@ -29,7 +35,7 @@ main : Program Never Model Msg
 main =
     Html.program
         { init = init
-        , view = Views.view
+        , view = WebGLViews.view
         , update = update
         , subscriptions = subscriptions
         }
@@ -41,6 +47,7 @@ subscriptions model =
         [ Sub.map KeyboardMsg Keyboard.Extra.subscriptions
         , Time.every (second / config.fps) TickControl
         , Time.every (second / config.tps) Tick
+        , Window.resizes Resize
         ]
 
 
@@ -198,3 +205,6 @@ update msg model =
         NewApple newApple ->
             model
                 |> addNewApple newApple
+
+        Resize size ->
+            ( { model | size = size }, Cmd.none )

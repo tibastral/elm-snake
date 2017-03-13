@@ -2,6 +2,7 @@ module Types exposing (..)
 
 import Keyboard.Extra
 import Time exposing (Time, second)
+import Window exposing (Size)
 
 
 type alias Position =
@@ -14,6 +15,7 @@ type alias Model =
     , arrows : Position
     , direction : Position
     , keyboardModel : Keyboard.Extra.Model
+    , size : Size
     }
 
 
@@ -22,6 +24,7 @@ type Msg
     | TickControl Time
     | KeyboardMsg Keyboard.Extra.Msg
     | NewApple ( Int, Int )
+    | Resize Size
 
 
 config =
