@@ -40,9 +40,8 @@ vertebraView =
     spriteView "🐍"
 
 
-snakeView snake =
-    snake
-        |> List.map vertebraView
+snakeView =
+    List.map vertebraView
 
 
 worldView { apple, snake } =
