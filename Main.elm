@@ -51,11 +51,10 @@ subscriptions model =
         ]
 
 
-dropLastVertebra snake =
-    snake
-        |> List.reverse
-        |> List.drop 1
-        |> List.reverse
+dropLastVertebra =
+    List.reverse
+        << List.drop 1
+        << List.reverse
 
 
 calculateNewVertebra ( x, y ) ( directionX, directionY ) =
@@ -78,9 +77,8 @@ addNewVertebra direction snake =
         (newVertebra :: snake)
 
 
-collision apple snake =
-    snake
-        |> List.member apple
+collision =
+    List.member
 
 
 generateNewApple =
@@ -107,7 +105,7 @@ out minimum maximum ( x, y ) =
 collisionWithHimselfOrWall snake =
     case snake of
         head :: tail ->
-            List.member head tail || out 0 config.max head
+            collision head tail || out 0 config.max head
 
         [] ->
             False
