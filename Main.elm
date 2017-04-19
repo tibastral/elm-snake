@@ -6,6 +6,7 @@ import Random
 import Html
 import Types exposing (..)
 import WebGLViews
+import Views
 import Window exposing (Size)
 import Task
 
@@ -35,7 +36,7 @@ main : Program Never Model Msg
 main =
     Html.program
         { init = init
-        , view = WebGLViews.view
+        , view = metaView
         , update = update
         , subscriptions = subscriptions
         }
@@ -177,6 +178,23 @@ handleKeyboard model keyMsg =
           }
         , Cmd.map KeyboardMsg keyboardCmd
         )
+
+
+
+-- asciiView model =
+--     Html.pre []
+--         [ Html.text ""
+--         ]
+--
+
+
+metaView model =
+    Html.div []
+        [ Views.view model
+        , WebGLViews.view model
+
+        -- , asciiView model
+        ]
 
 
 addNewApple : ( Int, Int ) -> Model -> ( Model, Cmd Msg )
