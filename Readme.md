@@ -1,5 +1,11 @@
 # Elm Lang Snake in WebGl and Html (look at the source for fun and profit)
 
+## Explanation Video of How we did it :
+
+[part 1](https://youtu.be/FeW9bXZipyg)
+[part 2](https://youtu.be/b9l7Jda3fnA)
+[part 3](https://youtu.be/z8H79HTm-CE)
+
 ## First iteration
 
 ![](https://cloud.githubusercontent.com/assets/43472/23854545/258d9124-07f2-11e7-923c-100438432f44.gif)
