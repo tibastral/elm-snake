@@ -1,4 +1,4 @@
-# Elm Lang Snake in WebGl and Html (look at the source for fun and profit)
+# Elm Lang Snake in WebGL and Html (look at the source for fun and profit)
 
 ## Explanation Video of How we did it :
 
@@ -16,3 +16,5 @@ If you want to know more about it, come to [elmeurope.org](https://elmeurope.org
 ## With the lightning and the sphere
 
 ![](https://cloud.githubusercontent.com/assets/43472/25152068/22e20a74-2488-11e7-9909-bcab2a41851c.gif)
+
+By @tibastral and @w0rm (@unsoundscapes on twitter)
