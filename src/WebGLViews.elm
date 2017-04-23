@@ -3,9 +3,11 @@ module WebGLViews exposing (..)
 import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import WebGL exposing (Mesh, Shader)
+import WebGL exposing (Mesh, Shader, Entity)
 import Math.Vector3 as Vec3 exposing (Vec3, vec3)
 import Math.Matrix4 exposing (Mat4, mul)
+import WebGL.Settings.DepthTest as DepthTest
+import WebGL.Settings.StencilTest as StencilTest
 
 
 type alias Attributes =
@@ -178,9 +180,20 @@ type alias Uniforms =
     }
 
 
-vertebraShadowView : Float -> ( Int, Int ) -> WebGL.Entity
+vertebraShadowView : Float -> ( Int, Int ) -> Entity
 vertebraShadowView ratio ( x, y ) =
-    WebGL.entity
+    WebGL.entityWith
+        [ StencilTest.test
+            { ref = 1
+            , mask = 0xFF
+            , test = StencilTest.equal
+            , fail = StencilTest.keep
+            , zfail = StencilTest.keep
+            , zpass = StencilTest.keep
+            , writeMask = 0
+            }
+        , DepthTest.default
+        ]
         shadowVertexShader
         shadowFragmentShader
         cube
@@ -191,9 +204,20 @@ vertebraShadowView ratio ( x, y ) =
         )
 
 
-appleShadowView : Float -> ( Int, Int ) -> WebGL.Entity
+appleShadowView : Float -> ( Int, Int ) -> Entity
 appleShadowView ratio ( x, y ) =
-    WebGL.entity
+    WebGL.entityWith
+        [ StencilTest.test
+            { ref = 1
+            , mask = 0xFF
+            , test = StencilTest.equal
+            , fail = StencilTest.keep
+            , zfail = StencilTest.keep
+            , zpass = StencilTest.keep
+            , writeMask = 0
+            }
+        , DepthTest.default
+        ]
         shadowVertexShader
         shadowFragmentShader
         sphere
@@ -204,12 +228,7 @@ appleShadowView ratio ( x, y ) =
         )
 
 
-snakeShadowView ratio snake =
-    snake
-        |> List.map (vertebraShadowView ratio)
-
-
-vertebraView : Float -> ( Int, Int ) -> WebGL.Entity
+vertebraView : Float -> ( Int, Int ) -> Entity
 vertebraView ratio ( x, y ) =
     WebGL.entity
         vertexShader
@@ -218,6 +237,7 @@ vertebraView ratio ( x, y ) =
         (Uniforms (vec3 0 1 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
 
 
+appleView : Float -> ( Int, Int ) -> Entity
 appleView ratio ( x, y ) =
     WebGL.entity
         vertexShader
@@ -226,17 +246,28 @@ appleView ratio ( x, y ) =
         (Uniforms (vec3 1 0 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
 
 
+wallsView : Float -> Entity
 wallsView ratio =
-    WebGL.entity
+    WebGL.entityWith
+        [ DepthTest.less
+            { write = False
+            , near = 0
+            , far = 1
+            }
+        , StencilTest.test
+            { ref = 1
+            , mask = 0xFF
+            , test = StencilTest.always
+            , fail = StencilTest.keep
+            , zfail = StencilTest.keep
+            , zpass = StencilTest.replace
+            , writeMask = 0xFF
+            }
+        ]
         vertexShader
         fragmentShader
         field
-        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 -0.1) (camera ratio))
-
-
-snakeView ratio snake =
-    snake
-        |> List.map (vertebraView ratio)
+        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 0) (camera ratio))
 
 
 type alias Varying =
@@ -298,6 +329,7 @@ shadowFragmentShader =
     |]
 
 
+scoreView : Model -> Html Msg
 scoreView { snake } =
     div [ style [ ( "position", "relative" ), ( "text-align", "center" ), ( "font", "bold 30px/3 sans-serif" ) ] ]
         [ (text ((List.length snake - 1) |> toString)) ]
@@ -309,7 +341,12 @@ worldView { apple, snake, size } =
         ratio =
             (toFloat size.width / toFloat size.height)
     in
-        WebGL.toHtml
+        WebGL.toHtmlWith
+            [ WebGL.alpha True
+            , WebGL.antialias
+            , WebGL.depth 1
+            , WebGL.stencil 0
+            ]
             [ style
                 [ ( "display", "block" )
                 , ( "position", "absolute" )
@@ -317,7 +354,12 @@ worldView { apple, snake, size } =
             , width size.width
             , height size.height
             ]
-            (wallsView ratio :: appleView ratio apple :: appleShadowView ratio apple :: snakeView ratio snake ++ snakeShadowView ratio snake)
+            (wallsView ratio
+                :: appleView ratio apple
+                :: appleShadowView ratio apple
+                :: List.map (vertebraView ratio) snake
+                ++ List.map (vertebraShadowView ratio) snake
+            )
 
 
 view : Model -> Html.Html Msg
