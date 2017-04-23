@@ -16,11 +16,22 @@ type alias Attributes =
     }
 
 
+{-| Direction of the light
+-}
 light : Vec3
 light =
     vec3 -1 1 3 |> Vec3.normalize
 
 
+{-| Normal to the floor
+-}
+floorNormal : Vec3
+floorNormal =
+    vec3 0 0 -1 |> Vec3.normalize
+
+
+{-| Camera projection matrix
+-}
 camera : Float -> Mat4
 camera ratio =
     let
@@ -37,54 +48,50 @@ camera ratio =
             (Math.Matrix4.makeLookAt eye center Vec3.j)
 
 
-{-| A "squash" matrix that smashes things to the ground plane
-   parallel to a given light vector
+{-| Adds a normal to the attributes
+-}
+attributes : Vec3 -> Vec3 -> Vec3 -> ( Attributes, Attributes, Attributes )
+attributes p1 p2 p3 =
+    let
+        normal =
+            Vec3.cross (Vec3.sub p1 p2) (Vec3.sub p1 p3) |> Vec3.normalize
+    in
+        ( Attributes p1 normal, Attributes p2 normal, Attributes p3 normal )
+
+
+{-| A "squash" matrix that smashes things to the ground plane,
+   defined by a normal, parallel to a given light vector
 -}
 shadow : Vec3 -> Vec3 -> Mat4
-shadow light normal =
+shadow normal light =
     let
         p =
-            Vec3.normalize normal |> Vec3.toRecord
+            Vec3.toRecord normal
 
         l =
             Vec3.toRecord light
 
         d =
-            -(Vec3.dot (Vec3.normalize normal) (light))
+            Vec3.dot normal light
     in
         Math.Matrix4.fromRecord
-            { m11 = p.x * l.x + d
+            { m11 = p.x * l.x - d
             , m21 = p.x * l.y
             , m31 = p.x * l.z
             , m41 = 0
             , m12 = p.y * l.x
-            , m22 = p.y * l.y + d
+            , m22 = p.y * l.y - d
             , m32 = p.y * l.z
             , m42 = 0
             , m13 = p.z * l.x
             , m23 = p.z * l.y
-            , m33 = p.z * l.z + d
+            , m33 = p.z * l.z - d
             , m43 = 0
             , m14 = 0
             , m24 = 0
             , m34 = 0
-            , m44 = d
+            , m44 = -d
             }
-
-
-attributes : Vec3 -> Vec3 -> Vec3 -> ( Attributes, Attributes, Attributes )
-attributes p1 p2 p3 =
-    let
-        v1 =
-            Vec3.sub p1 p2
-
-        v2 =
-            Vec3.sub p1 p3
-
-        normal =
-            Vec3.cross v1 v2 |> Vec3.normalize
-    in
-        ( Attributes p1 normal, Attributes p2 normal, Attributes p3 normal )
 
 
 cube : Mesh Attributes
@@ -111,16 +118,12 @@ cube =
         ]
 
 
-field : Mesh Attributes
-field =
-    let
-        s =
-            toFloat config.max + 0.5
-    in
-        WebGL.triangles
-            [ attributes (vec3 -0.5 s 0) (vec3 -0.5 -0.5 0) (vec3 s s 0)
-            , attributes (vec3 -0.5 -0.5 0) (vec3 s -0.5 0) (vec3 s s 0)
-            ]
+square : Mesh Attributes
+square =
+    WebGL.triangles
+        [ attributes (vec3 -0.5 0.5 0) (vec3 -0.5 -0.5 0) (vec3 0.5 0.5 0)
+        , attributes (vec3 -0.5 -0.5 0) (vec3 0.5 -0.5 0) (vec3 0.5 0.5 0)
+        ]
 
 
 sphere : Mesh Attributes
@@ -206,7 +209,7 @@ vertebraShadowView ratio ( x, y ) =
         (Uniforms
             (vec3 0.32 0.16 0.24)
             (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
-            (Math.Matrix4.mul (camera ratio) (shadow light (vec3 0 0 -1)))
+            (Math.Matrix4.mul (camera ratio) (shadow floorNormal light))
             light
         )
 
@@ -231,7 +234,7 @@ appleShadowView ratio ( x, y ) =
         (Uniforms
             (vec3 0.32 0.16 0.24)
             (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
-            (Math.Matrix4.mul (camera ratio) (shadow (vec3 -1 1 3) (vec3 0 0 -1)))
+            (Math.Matrix4.mul (camera ratio) (shadow floorNormal light))
             light
         )
 
@@ -267,12 +270,7 @@ appleView ratio ( x, y ) =
 wallsView : Float -> Entity
 wallsView ratio =
     WebGL.entityWith
-        [ DepthTest.less
-            { write = False
-            , near = 0
-            , far = 1
-            }
-        , StencilTest.test
+        [ StencilTest.test
             { ref = 1
             , mask = 0xFF
             , test = StencilTest.always
@@ -284,8 +282,15 @@ wallsView ratio =
         ]
         vertexShader
         fragmentShader
-        cube
-        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 0) (camera ratio) light)
+        square
+        (Uniforms (vec3 0.4 0.2 0.3)
+            (vec3 0 0 0)
+            (Math.Matrix4.makeScale3 (toFloat config.max + 1) (toFloat config.max + 1) 1
+                |> Math.Matrix4.mul (Math.Matrix4.makeTranslate3 (toFloat config.max / 2) (toFloat config.max / 2) 0)
+                |> Math.Matrix4.mul (camera ratio)
+            )
+            light
+        )
 
 
 type alias Varying =
@@ -372,10 +377,10 @@ worldView { apple, snake, size } =
             , height size.height
             ]
             (wallsView ratio
-                :: appleView ratio apple
                 :: appleShadowView ratio apple
-                :: List.map (vertebraView ratio) snake
-                ++ List.map (vertebraShadowView ratio) snake
+                :: appleView ratio apple
+                :: List.map (vertebraShadowView ratio) snake
+                ++ List.map (vertebraView ratio) snake
             )
 
 
