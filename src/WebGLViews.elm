@@ -18,7 +18,7 @@ camera : Float -> Mat4
 camera ratio =
     let
         c =
-            (toFloat config.max + 1) / 2
+            toFloat config.max / 2
 
         eye =
             vec3 c -c 15
@@ -28,6 +28,41 @@ camera ratio =
     in
         mul (Math.Matrix4.makePerspective 45 ratio 0.01 100)
             (Math.Matrix4.makeLookAt eye center Vec3.j)
+
+
+{-| A "squash" matrix that smashes things to the ground plane
+   parallel to a given light vector
+-}
+shadow : Vec3 -> Vec3 -> Mat4
+shadow light normal =
+    let
+        p =
+            Vec3.normalize normal |> Vec3.toRecord
+
+        l =
+            Vec3.toRecord light
+
+        d =
+            -(Vec3.dot (Vec3.normalize normal) (light))
+    in
+        Math.Matrix4.fromRecord
+            { m11 = p.x * l.x + d
+            , m21 = p.x * l.y
+            , m31 = p.x * l.z
+            , m41 = 0
+            , m12 = p.y * l.x
+            , m22 = p.y * l.y + d
+            , m32 = p.y * l.z
+            , m42 = 0
+            , m13 = p.z * l.x
+            , m23 = p.z * l.y
+            , m33 = p.z * l.z + d
+            , m43 = 0
+            , m14 = 0
+            , m24 = 0
+            , m34 = 0
+            , m44 = d
+            }
 
 
 attributes : Vec3 -> Vec3 -> Vec3 -> ( Attributes, Attributes, Attributes )
@@ -55,11 +90,11 @@ cube =
         , attributes (vec3 -0.5 0.5 0.5) (vec3 -0.5 -0.5 0.5) (vec3 0.5 0.5 0.5)
         , attributes (vec3 -0.5 -0.5 0.5) (vec3 0.5 -0.5 0.5) (vec3 0.5 0.5 0.5)
           -- right
-        , attributes (vec3 0.5 0.5 0.5) (vec3 0.5 -0.5 -0.5) (vec3 0.5 -0.5 0.5)
-        , attributes (vec3 0.5 -0.5 -0.5) (vec3 0.5 0.5 0.5) (vec3 0.5 0.5 -0.5)
+        , attributes (vec3 0.5 0.5 0.5) (vec3 0.5 -0.5 0.5) (vec3 0.5 -0.5 -0.5)
+        , attributes (vec3 0.5 -0.5 -0.5) (vec3 0.5 0.5 -0.5) (vec3 0.5 0.5 0.5)
           -- left
-        , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 0.5 0.5) (vec3 -0.5 -0.5 0.5)
-        , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 -0.5 0.5) (vec3 -0.5 -0.5 -0.5)
+        , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 -0.5 0.5) (vec3 -0.5 0.5 0.5)
+        , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 -0.5 -0.5) (vec3 -0.5 -0.5 0.5)
           -- bottom
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 0.5 0.5 -0.5) (vec3 0.5 -0.5 -0.5)
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 0.5 -0.5 -0.5) (vec3 -0.5 -0.5 -0.5)
@@ -73,11 +108,11 @@ field : Mesh Attributes
 field =
     let
         s =
-            toFloat config.max + 1
+            toFloat config.max + 0.5
     in
         WebGL.triangles
-            [ attributes (vec3 0 s -0.5) (vec3 0 0 -0.5) (vec3 s s -0.5)
-            , attributes (vec3 0 0 -0.5) (vec3 s 0 -0.5) (vec3 s s -0.5)
+            [ attributes (vec3 -0.5 s 0) (vec3 -0.5 -0.5 0) (vec3 s s 0)
+            , attributes (vec3 -0.5 -0.5 0) (vec3 s -0.5 0) (vec3 s s 0)
             ]
 
 
@@ -143,13 +178,44 @@ type alias Uniforms =
     }
 
 
+vertebraShadowView : Float -> ( Int, Int ) -> WebGL.Entity
+vertebraShadowView ratio ( x, y ) =
+    WebGL.entity
+        shadowVertexShader
+        shadowFragmentShader
+        cube
+        (Uniforms
+            (vec3 0.32 0.16 0.24)
+            (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
+            (Math.Matrix4.mul (camera ratio) (shadow (vec3 -1 1 3) (vec3 0 0 -1)))
+        )
+
+
+appleShadowView : Float -> ( Int, Int ) -> WebGL.Entity
+appleShadowView ratio ( x, y ) =
+    WebGL.entity
+        shadowVertexShader
+        shadowFragmentShader
+        sphere
+        (Uniforms
+            (vec3 0.32 0.16 0.24)
+            (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
+            (Math.Matrix4.mul (camera ratio) (shadow (vec3 -1 1 3) (vec3 0 0 -1)))
+        )
+
+
+snakeShadowView ratio snake =
+    snake
+        |> List.map (vertebraShadowView ratio)
+
+
 vertebraView : Float -> ( Int, Int ) -> WebGL.Entity
 vertebraView ratio ( x, y ) =
     WebGL.entity
         vertexShader
         fragmentShader
         cube
-        (Uniforms (vec3 0 1 0) (vec3 (toFloat x + 0.5) (toFloat (config.max - y) + 0.5) 0) (camera ratio))
+        (Uniforms (vec3 0 1 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
 
 
 appleView ratio ( x, y ) =
@@ -157,7 +223,7 @@ appleView ratio ( x, y ) =
         vertexShader
         fragmentShader
         sphere
-        (Uniforms (vec3 1 0 0) (vec3 (toFloat x + 0.5) (toFloat (config.max - y) + 0.5) 0) (camera ratio))
+        (Uniforms (vec3 1 0 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
 
 
 wallsView ratio =
@@ -165,7 +231,7 @@ wallsView ratio =
         vertexShader
         fragmentShader
         field
-        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 0) (camera ratio))
+        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 -0.1) (camera ratio))
 
 
 snakeView ratio snake =
@@ -189,7 +255,7 @@ vertexShader =
         void main () {
             highp float ambientLight = 0.4;
             highp float directionalLight = 0.6;
-            highp vec3 directionalVector = normalize(vec3(0, -2, 3));
+            highp vec3 directionalVector = normalize(vec3(-1, 1, 3));
             gl_Position = camera * vec4(position + offset, 1.0);
             highp float directional = max(dot(normal, directionalVector), 0.0);
             vlighting = ambientLight + directional * directionalLight;
@@ -205,6 +271,29 @@ fragmentShader =
         uniform vec3 color;
         void main () {
             gl_FragColor = vec4(color * vlighting, 1.0);
+        }
+    |]
+
+
+shadowVertexShader : Shader Attributes Uniforms {}
+shadowVertexShader =
+    [glsl|
+        attribute vec3 position;
+        uniform vec3 offset;
+        uniform mat4 camera;
+        void main () {
+            gl_Position = camera * vec4(position + offset, 1.0);
+        }
+    |]
+
+
+shadowFragmentShader : Shader {} Uniforms {}
+shadowFragmentShader =
+    [glsl|
+        precision mediump float;
+        uniform vec3 color;
+        void main () {
+            gl_FragColor = vec4(color, 1.0);
         }
     |]
 
@@ -228,7 +317,7 @@ worldView { apple, snake, size } =
             , width size.width
             , height size.height
             ]
-            (wallsView ratio :: appleView ratio apple :: snakeView ratio snake)
+            (wallsView ratio :: appleView ratio apple :: appleShadowView ratio apple :: snakeView ratio snake ++ snakeShadowView ratio snake)
 
 
 view : Model -> Html.Html Msg
