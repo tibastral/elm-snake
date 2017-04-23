@@ -16,6 +16,11 @@ type alias Attributes =
     }
 
 
+light : Vec3
+light =
+    vec3 -1 1 3 |> Vec3.normalize
+
+
 camera : Float -> Mat4
 camera ratio =
     let
@@ -177,6 +182,7 @@ type alias Uniforms =
     { color : Vec3
     , offset : Vec3
     , camera : Mat4
+    , light : Vec3
     }
 
 
@@ -200,7 +206,8 @@ vertebraShadowView ratio ( x, y ) =
         (Uniforms
             (vec3 0.32 0.16 0.24)
             (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
-            (Math.Matrix4.mul (camera ratio) (shadow (vec3 -1 1 3) (vec3 0 0 -1)))
+            (Math.Matrix4.mul (camera ratio) (shadow light (vec3 0 0 -1)))
+            light
         )
 
 
@@ -225,6 +232,7 @@ appleShadowView ratio ( x, y ) =
             (vec3 0.32 0.16 0.24)
             (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
             (Math.Matrix4.mul (camera ratio) (shadow (vec3 -1 1 3) (vec3 0 0 -1)))
+            light
         )
 
 
@@ -234,7 +242,12 @@ vertebraView ratio ( x, y ) =
         vertexShader
         fragmentShader
         cube
-        (Uniforms (vec3 0 1 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
+        (Uniforms
+            (vec3 0 1 0)
+            (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
+            (camera ratio)
+            light
+        )
 
 
 appleView : Float -> ( Int, Int ) -> Entity
@@ -243,7 +256,12 @@ appleView ratio ( x, y ) =
         vertexShader
         fragmentShader
         sphere
-        (Uniforms (vec3 1 0 0) (vec3 (toFloat x) (toFloat (config.max - y)) 0.5) (camera ratio))
+        (Uniforms
+            (vec3 1 0 0)
+            (vec3 (toFloat x) (toFloat (config.max - y)) 0.5)
+            (camera ratio)
+            light
+        )
 
 
 wallsView : Float -> Entity
@@ -266,8 +284,8 @@ wallsView ratio =
         ]
         vertexShader
         fragmentShader
-        field
-        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 0) (camera ratio))
+        cube
+        (Uniforms (vec3 0.4 0.2 0.3) (vec3 0 0 0) (camera ratio) light)
 
 
 type alias Varying =
@@ -282,14 +300,13 @@ vertexShader =
         attribute vec3 normal;
         uniform vec3 offset;
         uniform mat4 camera;
+        uniform vec3 light;
         varying highp float vlighting;
         void main () {
-            highp float ambientLight = 0.4;
-            highp float directionalLight = 0.6;
-            highp vec3 directionalVector = normalize(vec3(-1, 1, 3));
+            highp float ambientLight = 0.5;
+            highp float directionalLight = 0.5;
             gl_Position = camera * vec4(position + offset, 1.0);
-            highp float directional = max(dot(normal, directionalVector), 0.0);
-            vlighting = ambientLight + directional * directionalLight;
+            vlighting = ambientLight + max(dot(normal, light), 0.0) * directionalLight;
         }
     |]
 
