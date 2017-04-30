@@ -1,8 +1,6 @@
-<<<<<<< HEAD
 # Elm Lang Snake in WebGL and Html (look at the source for fun and profit)
-=======
-# Elm Lang Snake in WebGl and Html (look at the source for fun and profit) [DEMO](http://tibastral.github.io/elm-snake)
->>>>>>> eaf1c415813a7f76af53af3f0005bcdb7d55f941
+
+[DEMO](http://tibastral.github.io/elm-snake)
 
 ## Explanation Video of How we did it :
 
