@@ -25,6 +25,7 @@ init =
         ( 1, 0 )
         initialKeyboard
         (Size 0 0)
+        False
     , Cmd.batch
         [ generateNewApple
         , Task.perform Resize Window.size
@@ -132,7 +133,7 @@ moveSnake ({ direction, snake, apple } as model) =
         if collisionWithHimselfOrWall movedSnake then
             init
         else
-            ( { model | snake = finalSnake }
+            ( { model | snake = finalSnake, moved = False }
             , if appleEaten then
                 generateNewApple
               else
@@ -156,7 +157,10 @@ updateDirection model =
             model.direction
                 |> applyKeyboard model.arrows
     in
-        { model | direction = newDirection }
+        if model.moved then
+            model
+        else
+            { model | direction = newDirection, moved = True }
 
 
 handleKeyboard : Model -> Keyboard.Extra.Msg -> ( Model, Cmd Msg )

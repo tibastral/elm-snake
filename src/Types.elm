@@ -16,6 +16,7 @@ type alias Model =
     , direction : Position
     , keyboardModel : Keyboard.Extra.Model
     , size : Size
+    , moved : Bool
     }
 
 
