@@ -1,11 +1,11 @@
-module WebGLViews exposing (..)
+module WebGLViews exposing (Attributes, Uniforms, Varying, appleShadowView, appleView, attributes, camera, cube, divide, divideSphere, floorNormal, fragmentShader, light, octahedron, scoreView, shadow, shadowFragmentShader, shadowVertexShader, sphere, square, vertebraShadowView, vertebraView, vertexShader, view, wallsView, worldView)
 
-import Types exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import WebGL exposing (Mesh, Shader, Entity)
-import Math.Vector3 as Vec3 exposing (Vec3, vec3)
 import Math.Matrix4 exposing (Mat4, mul)
+import Math.Vector3 as Vec3 exposing (Vec3, vec3)
+import Types exposing (..)
+import WebGL exposing (Entity, Mesh, Shader)
 import WebGL.Settings.DepthTest as DepthTest
 import WebGL.Settings.StencilTest as StencilTest
 
@@ -44,8 +44,8 @@ camera ratio =
         center =
             vec3 c c 0
     in
-        mul (Math.Matrix4.makePerspective 45 ratio 0.01 100)
-            (Math.Matrix4.makeLookAt eye center Vec3.j)
+    mul (Math.Matrix4.makePerspective 45 ratio 0.01 100)
+        (Math.Matrix4.makeLookAt eye center Vec3.j)
 
 
 {-| Adds a normal to the attributes
@@ -56,42 +56,42 @@ attributes p1 p2 p3 =
         normal =
             Vec3.cross (Vec3.sub p1 p2) (Vec3.sub p1 p3) |> Vec3.normalize
     in
-        ( Attributes p1 normal, Attributes p2 normal, Attributes p3 normal )
+    ( Attributes p1 normal, Attributes p2 normal, Attributes p3 normal )
 
 
 {-| A "squash" matrix that smashes things to the ground plane,
-   defined by a normal, parallel to a given light vector
+defined by a normal, parallel to a given light vector
 -}
 shadow : Vec3 -> Vec3 -> Mat4
-shadow normal light =
+shadow normal light_ =
     let
         p =
             Vec3.toRecord normal
 
         l =
-            Vec3.toRecord light
+            Vec3.toRecord light_
 
         d =
-            Vec3.dot normal light
+            Vec3.dot normal light_
     in
-        Math.Matrix4.fromRecord
-            { m11 = p.x * l.x - d
-            , m21 = p.x * l.y
-            , m31 = p.x * l.z
-            , m41 = 0
-            , m12 = p.y * l.x
-            , m22 = p.y * l.y - d
-            , m32 = p.y * l.z
-            , m42 = 0
-            , m13 = p.z * l.x
-            , m23 = p.z * l.y
-            , m33 = p.z * l.z - d
-            , m43 = 0
-            , m14 = 0
-            , m24 = 0
-            , m34 = 0
-            , m44 = -d
-            }
+    Math.Matrix4.fromRecord
+        { m11 = p.x * l.x - d
+        , m21 = p.x * l.y
+        , m31 = p.x * l.z
+        , m41 = 0
+        , m12 = p.y * l.x
+        , m22 = p.y * l.y - d
+        , m32 = p.y * l.z
+        , m42 = 0
+        , m13 = p.z * l.x
+        , m23 = p.z * l.y
+        , m33 = p.z * l.z - d
+        , m43 = 0
+        , m14 = 0
+        , m24 = 0
+        , m34 = 0
+        , m44 = -d
+        }
 
 
 cube : Mesh Attributes
@@ -100,19 +100,24 @@ cube =
         [ -- back
           attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 0.5 0.5) (vec3 0.5 0.5 0.5)
         , attributes (vec3 0.5 0.5 0.5) (vec3 0.5 0.5 -0.5) (vec3 -0.5 0.5 -0.5)
-          -- top
+
+        -- top
         , attributes (vec3 -0.5 0.5 0.5) (vec3 -0.5 -0.5 0.5) (vec3 0.5 0.5 0.5)
         , attributes (vec3 -0.5 -0.5 0.5) (vec3 0.5 -0.5 0.5) (vec3 0.5 0.5 0.5)
-          -- right
+
+        -- right
         , attributes (vec3 0.5 0.5 0.5) (vec3 0.5 -0.5 0.5) (vec3 0.5 -0.5 -0.5)
         , attributes (vec3 0.5 -0.5 -0.5) (vec3 0.5 0.5 -0.5) (vec3 0.5 0.5 0.5)
-          -- left
+
+        -- left
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 -0.5 0.5) (vec3 -0.5 0.5 0.5)
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 -0.5 -0.5 -0.5) (vec3 -0.5 -0.5 0.5)
-          -- bottom
+
+        -- bottom
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 0.5 0.5 -0.5) (vec3 0.5 -0.5 -0.5)
         , attributes (vec3 -0.5 0.5 -0.5) (vec3 0.5 -0.5 -0.5) (vec3 -0.5 -0.5 -0.5)
-          -- front
+
+        -- front
         , attributes (vec3 -0.5 -0.5 -0.5) (vec3 0.5 -0.5 0.5) (vec3 -0.5 -0.5 0.5)
         , attributes (vec3 0.5 -0.5 0.5) (vec3 -0.5 -0.5 -0.5) (vec3 0.5 -0.5 -0.5)
         ]
@@ -139,17 +144,21 @@ divideSphere : Int -> List ( Vec3, Vec3, Vec3 ) -> List ( Vec3, Vec3, Vec3 )
 divideSphere step triangles =
     if step == 0 then
         triangles
+
     else
         divideSphere (step - 1) (List.concatMap divide triangles)
 
 
 {-|
+
         1
        / \
     b /___\ c
      /\   /\
     /__\ /__\
-   0    a    2
+
+0 a 2
+
 -}
 divide : ( Vec3, Vec3, Vec3 ) -> List ( Vec3, Vec3, Vec3 )
 divide ( v0, v1, v2 ) =
@@ -163,7 +172,7 @@ divide ( v0, v1, v2 ) =
         c =
             Vec3.add v1 v2 |> Vec3.normalize |> Vec3.scale 0.5
     in
-        [ ( v0, b, a ), ( b, v1, c ), ( a, b, c ), ( a, c, v2 ) ]
+    [ ( v0, b, a ), ( b, v1, c ), ( a, b, c ), ( a, c, v2 ) ]
 
 
 {-| Octahedron
@@ -353,35 +362,33 @@ shadowFragmentShader =
 
 scoreView : Model -> Html Msg
 scoreView { snake } =
-    div [ style [ ( "position", "relative" ), ( "text-align", "center" ), ( "font", "bold 30px/3 sans-serif" ) ] ]
-        [ (text ((List.length snake - 1) |> toString)) ]
+    div [ style "position" "relative", style "text-align" "center", style "font" "bold 30px/3 sans-serif" ]
+        [ text ((List.length snake - 1) |> String.fromInt) ]
 
 
 worldView : Model -> Html.Html Msg
 worldView { apple, snake, size } =
     let
         ratio =
-            (toFloat size.width / toFloat size.height)
+            toFloat (size |> Tuple.first) / toFloat (size |> Tuple.second)
     in
-        WebGL.toHtmlWith
-            [ WebGL.alpha True
-            , WebGL.antialias
-            , WebGL.depth 1
-            , WebGL.stencil 0
-            ]
-            [ style
-                [ ( "display", "block" )
-                , ( "position", "absolute" )
-                ]
-            , width size.width
-            , height size.height
-            ]
-            (wallsView ratio
-                :: appleShadowView ratio apple
-                :: appleView ratio apple
-                :: List.map (vertebraShadowView ratio) snake
-                ++ List.map (vertebraView ratio) snake
-            )
+    WebGL.toHtmlWith
+        [ WebGL.alpha True
+        , WebGL.antialias
+        , WebGL.depth 1
+        , WebGL.stencil 0
+        ]
+        [ style "display" "block"
+        , style "position" "absolute"
+        , width (size |> Tuple.first)
+        , height (size |> Tuple.second)
+        ]
+        (wallsView ratio
+            :: appleShadowView ratio apple
+            :: appleView ratio apple
+            :: List.map (vertebraShadowView ratio) snake
+            ++ List.map (vertebraView ratio) snake
+        )
 
 
 view : Model -> Html.Html Msg
