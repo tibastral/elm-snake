@@ -32,23 +32,28 @@ spriteView val ( x, y ) =
         [ text val ]
 
 
+appleView : Position -> Html msg
 appleView =
     spriteView "🍎"
 
 
+vertebraView : Position -> Html msg
 vertebraView =
     spriteView "🐍"
 
 
+snakeView : List Position -> List (Html msg)
 snakeView =
     List.map vertebraView
 
 
+worldView : Model -> Html msg
 worldView { apple, snake } =
     div [] (wallsView :: (appleView apple) :: (snakeView snake))
 
 
-scoreView { snake } =
+scoreView : List a -> Html msg
+scoreView snake =
     div [ style [ ( "position", "absolute" ), ( "color", "white" ) ] ]
         [ (text ((List.length snake - 1) |> toString)) ]
 
@@ -57,5 +62,5 @@ view : Model -> Html.Html Msg
 view model =
     div []
         [ worldView model
-        , scoreView model
+        , scoreView model.snake
         ]

@@ -52,19 +52,22 @@ subscriptions model =
         ]
 
 
+dropLastVertebra : List a -> List a
 dropLastVertebra =
-    List.reverse
-        << List.drop 1
-        << List.reverse
+    List.reverse << List.drop 1 << List.reverse
 
 
+calculateNewVertebra :
+    Position
+    -> Position
+    -> Position
 calculateNewVertebra ( x, y ) ( directionX, directionY ) =
     ( directionX + x
     , directionY + y
     )
 
 
-addNewVertebra : ( Int, Int ) -> List ( Int, Int ) -> List ( Int, Int )
+addNewVertebra : Position -> List Position -> List Position
 addNewVertebra direction snake =
     let
         currentHead =
@@ -75,13 +78,15 @@ addNewVertebra direction snake =
         newVertebra =
             calculateNewVertebra currentHead direction
     in
-        (newVertebra :: snake)
+        newVertebra :: snake
 
 
+collision : a -> List a -> Bool
 collision =
     List.member
 
 
+generateNewApple : Cmd Msg
 generateNewApple =
     Random.generate NewApple
         (Random.pair
@@ -90,10 +95,12 @@ generateNewApple =
         )
 
 
+between : comparable -> comparable -> comparable -> Bool
 between minimum maximum value =
     value >= minimum && value <= maximum
 
 
+out : comparable -> comparable -> ( comparable, comparable ) -> Bool
 out minimum maximum ( x, y ) =
     let
         betweenBorders =
@@ -103,6 +110,7 @@ out minimum maximum ( x, y ) =
             || (not <| betweenBorders x)
 
 
+collisionWithHimselfOrWall : List ( number, number ) -> Bool
 collisionWithHimselfOrWall snake =
     case snake of
         head :: tail ->
@@ -120,14 +128,14 @@ moveSnake ({ direction, snake, apple } as model) =
                 |> addNewVertebra direction
 
         appleEaten =
-            movedSnake
-                |> collision apple
+            collision apple movedSnake
 
         finalSnake =
             if appleEaten then
                 movedSnake
             else
-                movedSnake |> dropLastVertebra
+                movedSnake
+                    |> dropLastVertebra
     in
         if collisionWithHimselfOrWall movedSnake then
             init
@@ -140,6 +148,10 @@ moveSnake ({ direction, snake, apple } as model) =
             )
 
 
+applyKeyboard :
+    ( number, number1 )
+    -> ( number2, number3 )
+    -> ( number2, number3 )
 applyKeyboard ( arrowX, arrowY ) (( snakeDirectionX, snakeDirectionY ) as snakeDirection) =
     if arrowX /= 0 && snakeDirectionX == 0 then
         ( arrowX, 0 )
@@ -159,8 +171,8 @@ updateDirection model =
         { model | direction = newDirection }
 
 
-handleKeyboard : Model -> Keyboard.Extra.Msg -> ( Model, Cmd Msg )
-handleKeyboard model keyMsg =
+handleKeyboard :  Keyboard.Extra.Msg -> Model -> ( Model, Cmd Msg )
+handleKeyboard  keyMsg model =
     let
         ( keyboardModel, keyboardCmd ) =
             Keyboard.Extra.update keyMsg model.keyboardModel
@@ -188,6 +200,7 @@ handleKeyboard model keyMsg =
 --
 
 
+metaView : Model -> Html.Html Msg
 metaView model =
     Html.div []
         [ Views.view model
@@ -209,7 +222,7 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         KeyboardMsg keyMsg ->
-            handleKeyboard model keyMsg
+            handleKeyboard  keyMsg model
 
         TickControl time ->
             ( model |> updateDirection, Cmd.none )
