@@ -72,9 +72,7 @@ init =
         []
         ( 0, 0 )
         ( 0, 0 )
-    , Cmd.batch
-        [ generateNewApple
-        ]
+    , generateNewApple
     )
 
 
@@ -188,12 +186,13 @@ moveSnake ({ direction, snake, apple } as model) =
             collision apple movedSnake
 
         finalSnake =
-            if appleEaten then
-                movedSnake
+            movedSnake
+                |> (if appleEaten then
+                        identity
 
-            else
-                movedSnake
-                    |> dropLastVertebra
+                    else
+                        dropLastVertebra
+                   )
     in
     if collisionWithHimselfOrWall movedSnake then
         init
