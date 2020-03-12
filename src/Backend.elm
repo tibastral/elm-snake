@@ -166,17 +166,7 @@ initWithClients clients =
 
 init : ( Model, Cmd BackendMsg )
 init =
-    ( Types.BackendModel
-        [ ( 0, 0 ) ]
-        ( 0, 0 )
-        ( 0, 0 )
-        ( 1, 0 )
-        []
-        ( 0, 0 )
-        ( 0, 0 )
-        Set.empty
-    , Cmd.none
-    )
+    initWithClients Set.empty
 
 
 applyKeyboard :
