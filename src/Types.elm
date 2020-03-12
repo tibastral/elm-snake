@@ -3,6 +3,8 @@ module Types exposing (..)
 import Browser exposing (UrlRequest)
 import Browser.Navigation exposing (Key)
 import Keyboard
+import Lamdera exposing (ClientId)
+import Set
 import Time exposing (Posix)
 import Url exposing (Url)
 
@@ -34,7 +36,16 @@ type alias FrontendModel =
 
 
 type alias BackendModel =
-    { message : String
+    { snake : List Position
+    , apple : Position
+    , arrows : Position
+    , direction : Position
+    , pressedKeys : List Keyboard.Key
+
+    -- , keyboardModel : Keyboard.Model
+    , size : Position
+    , touch : Position
+    , clients : Set.Set ClientId
     }
 
 
@@ -42,22 +53,25 @@ type FrontendMsg
     = UrlClicked UrlRequest
     | UrlChanged Url
     | NoOpFrontendMsg
-    | Tick Posix
-    | TickControl Posix
     | KeyboardMsg Keyboard.Msg
-    | NewApple ( Int, Int )
     | Resize Position
     | StartMsg ( Float, Float )
     | EndMsg ( Float, Float )
 
 
 type ToBackend
-    = NoOpToBackend
+    = PressedKeys (List Keyboard.Key) ( Int, Int )
+    | ClientJoin
+    | NoOpToBackend
 
 
 type BackendMsg
-    = NoOpBackendMsg
+    = Tick Posix
+    | TickControl Posix
+    | NewApple ( Int, Int )
+    | NoOpBackendMsg
 
 
 type ToFrontend
-    = NoOpToFrontend
+    = NewModel (List Position) Position
+    | NoOpToFrontend

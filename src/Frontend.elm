@@ -9,7 +9,6 @@ import Html.Events.Extra.Touch as Touch
 import Keyboard
 import Keyboard.Arrows
 import Lamdera
-import Random
 import Task
 import Time exposing (Posix)
 import Types exposing (..)
@@ -55,23 +54,15 @@ update msg model =
                 newPressedKeys =
                     Keyboard.update keyMsg model.pressedKeys
             in
-            ( { model
-                | pressedKeys = newPressedKeys
-                , arrows = Keyboard.Arrows.arrows newPressedKeys |> arrowsToPosition
-              }
-            , Cmd.none
+            ( model
+            , Lamdera.sendToBackend
+                (PressedKeys
+                    newPressedKeys
+                    (Keyboard.Arrows.arrows newPressedKeys
+                        |> arrowsToPosition
+                    )
+                )
             )
-
-        TickControl time ->
-            ( model |> updateDirection, Cmd.none )
-
-        Tick time ->
-            model
-                |> moveSnake
-
-        NewApple newApple ->
-            model
-                |> addNewApple newApple
 
         Resize size ->
             ( { model | size = size }, Cmd.none )
@@ -92,21 +83,12 @@ update msg model =
 
 updateFromBackend : ToFrontend -> Model -> ( Model, Cmd FrontendMsg )
 updateFromBackend msg model =
-    ( model, Cmd.none )
+    case msg of
+        NewModel snake apple ->
+            ( { model | snake = snake, apple = apple }, Cmd.none )
 
-
-
--- view model =
---     { title = ""
---     , body =
---         [ Html.div [] [ Html.text model.message ]
---         ]
---     }
--- import Views
--- import WebGLViews
--- initialKeyboard : Keyboard.Model
--- initialKeyboard =
---     Tuple.first Keyboard.init
+        _ ->
+            ( model, Cmd.none )
 
 
 touchCoordinates : Touch.Event -> ( Float, Float )
@@ -136,199 +118,15 @@ init url key =
         ( 0, 0 )
         url
         key
-      --{ key = key, message = "Welcome to Lamdera! You're looking at the auto-generated base implementation. Check out src/Frontend.elm to start coding!" }
-    , generateNewApple
+    , Lamdera.sendToBackend ClientJoin
     )
-
-
-
--- main : Program () Model Msg
--- main =
---     Browser.document
---         { init = \flags -> init
---         , update = update
---         , subscriptions = subscriptions
---         , view = metaView
---         }
--- renderDocument =
--- Html.program
--- { init = init
--- , view = metaView
--- , update = update
--- , subscriptions = subscriptions
--- }
 
 
 subscriptions : Model -> Sub FrontendMsg
 subscriptions model =
     Sub.batch
         [ Sub.map KeyboardMsg Keyboard.subscriptions
-        , Time.every (1000 / config.fps) TickControl
-        , Time.every (1000 / config.tps) Tick
-
-        -- , Browser.Events.onResize Resize
         ]
-
-
-dropLastVertebra : List a -> List a
-dropLastVertebra =
-    List.reverse << List.drop 1 << List.reverse
-
-
-calculateNewVertebra :
-    Position
-    -> Position
-    -> Position
-calculateNewVertebra ( x, y ) ( directionX, directionY ) =
-    ( directionX + x
-    , directionY + y
-    )
-
-
-addNewVertebra : Position -> List Position -> List Position
-addNewVertebra direction snake =
-    let
-        currentHead =
-            snake
-                |> List.head
-                |> Maybe.withDefault ( 0, 0 )
-
-        newVertebra =
-            calculateNewVertebra currentHead direction
-    in
-    newVertebra :: snake
-
-
-collision : a -> List a -> Bool
-collision =
-    List.member
-
-
-generateNewApple : Cmd FrontendMsg
-generateNewApple =
-    Random.generate NewApple
-        (Random.pair
-            (Random.int 1 config.max)
-            (Random.int 1 config.max)
-        )
-
-
-between : comparable -> comparable -> comparable -> Bool
-between minimum maximum value =
-    value >= minimum && value <= maximum
-
-
-out : comparable -> comparable -> ( comparable, comparable ) -> Bool
-out minimum maximum ( x, y ) =
-    let
-        betweenBorders =
-            between minimum maximum
-    in
-    (not <| betweenBorders y)
-        || (not <| betweenBorders x)
-
-
-collisionWithHimselfOrWall : List ( number, number ) -> Bool
-collisionWithHimselfOrWall snake =
-    case snake of
-        head :: tail ->
-            collision head tail || out 0 config.max head
-
-        [] ->
-            False
-
-
-moveSnake : Model -> ( Model, Cmd FrontendMsg )
-moveSnake ({ direction, snake, apple } as model) =
-    let
-        movedSnake =
-            snake
-                |> addNewVertebra direction
-
-        appleEaten =
-            collision apple movedSnake
-
-        finalSnake =
-            movedSnake
-                |> (if appleEaten then
-                        identity
-
-                    else
-                        dropLastVertebra
-                   )
-    in
-    if collisionWithHimselfOrWall movedSnake then
-        init model.url model.key
-
-    else
-        ( { model | snake = finalSnake }
-        , if appleEaten then
-            generateNewApple
-
-          else
-            Cmd.none
-        )
-
-
-applyKeyboard :
-    ( Int, Int )
-    -> ( Int, Int )
-    -> ( Int, Int )
-applyKeyboard ( arrowX, arrowY ) (( snakeDirectionX, snakeDirectionY ) as snakeDirection) =
-    if arrowX /= 0 && snakeDirectionX == 0 then
-        ( arrowX, 0 )
-
-    else if arrowY /= 0 && snakeDirectionY == 0 then
-        ( 0, -arrowY )
-
-    else
-        snakeDirection
-
-
-updateDirection : Model -> Model
-updateDirection model =
-    let
-        newDirection =
-            model.direction
-                |> applyKeyboard model.arrows
-    in
-    { model | direction = newDirection }
-
-
-handleKeyboard : Keyboard.Msg -> Model -> ( Model, Cmd FrontendMsg )
-handleKeyboard keyMsg model =
-    -- KeyMsg keyMsg ->
-    -- ( { model | pressedKeys = Keyboard.update keyMsg model.pressedKeys }
-    -- , Cmd.none
-    -- )
-    -- case keyMsg of
-    --     Keyboard.
-    -- let
-    -- ( keyboardModel, keyboardCmd ) =
-    --     Keyboard.update keyMsg model.keyboardModel
-    -- arrows =
-    --     Keyboard.arrows keyboardModel
-    -- newArrows : ( Int, Int )
-    -- newArrows =
-    --     ( arrows.x, arrows.y )
-    -- in
-    ( --{
-      model
-      -- | keyboardModel = keyboardModel
-      -- , arrows = newArrows
-      --   }
-    , Cmd.none
-      -- Cmd.map KeyboardMsg keyboardCmd
-    )
-
-
-
--- asciiView model =
---     Html.pre []
---         [ Html.text ""
---         ]
---
--- metaView : Model -> Html.Html Msg
 
 
 metaView model =
@@ -344,15 +142,6 @@ metaView model =
         -- , asciiView model
         ]
     }
-
-
-addNewApple : ( Int, Int ) -> Model -> ( Model, Cmd FrontendMsg )
-addNewApple newApple model =
-    if collision newApple model.snake then
-        ( model, generateNewApple )
-
-    else
-        ( { model | apple = newApple }, Cmd.none )
 
 
 arrowsToPosition : Keyboard.Arrows.Arrows -> Position
@@ -444,11 +233,3 @@ view model =
         [ worldView model
         , scoreView model.snake
         ]
-
-
-
--- view : Model -> Browser.Document FrontendMsg
--- view model =
---     { title = "v1"
---     , body = [ view model ]
---     }
