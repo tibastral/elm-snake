@@ -1,4 +1,4 @@
-module Main exposing (addNewApple, addNewVertebra, applyKeyboard, between, calculateNewVertebra, collision, collisionWithHimselfOrWall, dropLastVertebra, generateNewApple, handleKeyboard, init, main, metaView, moveSnake, out, subscriptions, update, updateDirection)
+module DisconnectedVersion exposing (addNewApple, addNewVertebra, applyKeyboard, between, calculateNewVertebra, collision, collisionWithHimselfOrWall, dropLastVertebra, generateNewApple, handleKeyboard, init, main, metaView, moveSnake, out, subscriptions, update, updateDirection)
 
 import Browser
 import Browser.Events

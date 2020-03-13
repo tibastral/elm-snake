@@ -32,8 +32,6 @@ config =
 subscriptions model =
     Sub.batch
         [ Time.every (1000 / config.tps) Tick
-
-        -- , Time.every (1000 / config.fps) TickControl
         ]
 
 
@@ -202,8 +200,6 @@ update msg model =
                 |> updateDirection
                 |> moveSnake
 
-        -- TickControl time ->
-        --     ( model |> updateDirection, Cmd.none )
         NewApple newApple ->
             model
                 |> addNewApple newApple
