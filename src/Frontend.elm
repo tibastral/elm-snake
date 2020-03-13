@@ -54,10 +54,9 @@ update msg model =
                 newPressedKeys =
                     Keyboard.update keyMsg model.pressedKeys
             in
-            ( model
+            ( { model | pressedKeys = newPressedKeys }
             , Lamdera.sendToBackend
-                (PressedKeys
-                    newPressedKeys
+                (UpdateArrows
                     (Keyboard.Arrows.arrows newPressedKeys
                         |> arrowsToPosition
                     )
@@ -75,7 +74,10 @@ update msg model =
                 direction =
                     getDirection model.touch ( x |> floor, y |> floor )
             in
-            ( { model | arrows = direction }, Cmd.none )
+            ( model
+            , Lamdera.sendToBackend
+                (UpdateArrows direction)
+            )
 
         NoOpFrontendMsg ->
             ( model, Cmd.none )
@@ -111,7 +113,6 @@ init url key =
     ( Types.FrontendModel
         [ ( 0, 0 ) ]
         ( 0, 0 )
-        ( 0, 0 )
         ( 1, 0 )
         []
         ( 0, 0 )
@@ -132,7 +133,8 @@ subscriptions model =
 metaView model =
     { title = "Not Only Meetings"
     , body =
-        [ Html.div
+        [ Html.node "style" [] [ Html.text "body{margin: 0}" ]
+        , Html.div
             [ Touch.onStart (StartMsg << touchCoordinates)
             , Touch.onEnd (EndMsg << touchCoordinates)
             ]

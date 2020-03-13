@@ -16,7 +16,8 @@ type alias Position =
 type alias FrontendModel =
     { snake : List Position
     , apple : Position
-    , arrows : Position
+
+    -- , arrows : Position
     , direction : Position
     , pressedKeys : List Keyboard.Key
 
@@ -40,8 +41,8 @@ type alias BackendModel =
     , apple : Position
     , arrows : Position
     , direction : Position
-    , pressedKeys : List Keyboard.Key
 
+    -- , pressedKeys : List Keyboard.Key
     -- , keyboardModel : Keyboard.Model
     , size : Position
     , touch : Position
@@ -60,14 +61,14 @@ type FrontendMsg
 
 
 type ToBackend
-    = PressedKeys (List Keyboard.Key) ( Int, Int )
+    = UpdateArrows ( Int, Int )
     | ClientJoin
     | NoOpToBackend
 
 
 type BackendMsg
     = Tick Posix
-    | TickControl Posix
+      -- | TickControl Posix
     | NewApple ( Int, Int )
     | NoOpBackendMsg
 

@@ -32,7 +32,8 @@ config =
 subscriptions model =
     Sub.batch
         [ Time.every (1000 / config.tps) Tick
-        , Time.every (1000 / config.fps) TickControl
+
+        -- , Time.every (1000 / config.fps) TickControl
         ]
 
 
@@ -156,7 +157,6 @@ initWithClients clients =
         ( 0, 0 )
         ( 0, 0 )
         ( 1, 0 )
-        []
         ( 0, 0 )
         ( 0, 0 )
         clients
@@ -199,11 +199,11 @@ update msg model =
     case msg of
         Tick time ->
             model
+                |> updateDirection
                 |> moveSnake
 
-        TickControl time ->
-            ( model |> updateDirection, Cmd.none )
-
+        -- TickControl time ->
+        --     ( model |> updateDirection, Cmd.none )
         NewApple newApple ->
             model
                 |> addNewApple newApple
@@ -220,8 +220,8 @@ updateFromFrontend sessionId clientId msg model =
             , Cmd.none
             )
 
-        PressedKeys pressedKeys arrows ->
-            ( { model | pressedKeys = pressedKeys, arrows = arrows }, Cmd.none )
+        UpdateArrows arrows ->
+            ( { model | arrows = arrows }, Cmd.none )
 
         NoOpToBackend ->
             ( model, Cmd.none )
