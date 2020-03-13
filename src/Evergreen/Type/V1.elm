@@ -16,12 +16,8 @@ type alias Position =
 type alias FrontendModel =
     { snake : List Position
     , apple : Position
-
-    -- , arrows : Position
     , direction : Position
     , pressedKeys : List Keyboard.Key
-
-    -- , keyboardModel : Keyboard.Model
     , size : Position
     , touch : Position
     , url : Url.Url
@@ -29,21 +25,11 @@ type alias FrontendModel =
     }
 
 
-
--- type alias FrontendModel =
---     { key : Key
---     , message : String
---     }
-
-
 type alias BackendModel =
     { snake : List Position
     , apple : Position
     , arrows : Position
     , direction : Position
-
-    -- , pressedKeys : List Keyboard.Key
-    -- , keyboardModel : Keyboard.Model
     , size : Position
     , touch : Position
     , clients : Set.Set ClientId
@@ -68,7 +54,6 @@ type ToBackend
 
 type BackendMsg
     = Tick Posix
-      -- | TickControl Posix
     | NewApple ( Int, Int )
     | NoOpBackendMsg
 
